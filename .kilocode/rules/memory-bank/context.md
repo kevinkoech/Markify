@@ -2,13 +2,13 @@
 
 ## Current State
 
-**Status**: ✅ Phase 1 Complete - Core System Implemented
+**Status**: ✅ Phase 1 Complete - Core System Implemented + User Management Enhanced
 
 The Engineering Training Automated Marking System is now functional with all core features implemented.
 
 ## Recently Completed
 
-- [x] Database setup with Drizzle ORM + SQLite
+- [x] Database setup with Drizzle ORM + SQLite (local.db)
 - [x] User authentication with role-based access (trainee, trainer, admin)
 - [x] Database schema with relations (users, units, submissions, results, marking schemes, notifications, audit logs)
 - [x] Trainee portal (dashboard, upload, submissions, progress tracking)
@@ -16,7 +16,10 @@ The Engineering Training Automated Marking System is now functional with all cor
 - [x] Admin portal (user management, system settings)
 - [x] Marking system with visual indicators (✓ tick, ✗ cross, ╱ diagonal)
 - [x] Reports and analytics with CSV export
-- [x] Demo user seeding script
+- [x] Demo user seeding script (now working with local SQLite)
+- [x] Sign up page for new users (auto-assigns trainee role)
+- [x] Profile management page (update name, department, change password)
+- [x] Login page with sign up link
 
 ## Current Structure
 
@@ -25,6 +28,8 @@ The Engineering Training Automated Marking System is now functional with all cor
 | `src/app/actions/` | Server actions for auth, marking, schemes, submissions, units, users |
 | `src/app/dashboard/` | Dashboard pages for all user roles |
 | `src/app/login/` | Login page |
+| `src/app/signup/` | Sign up page for new users |
+| `src/app/dashboard/profile/` | Profile management page |
 | `src/components/` | Shared UI components |
 | `src/db/` | Database schema, migrations, and seed |
 | `src/lib/` | Authentication utilities |
@@ -40,10 +45,12 @@ The Engineering Training Automated Marking System is now functional with all cor
 ## Key Features
 
 1. **Authentication**: Session-based auth with cookies, role-based access control
-2. **Document Upload**: Support for Word, PowerPoint, PDF files
-3. **Marking System**: Manual marking with visual indicators, competency tracking
-4. **Reports**: Analytics dashboard with CSV export
-5. **User Management**: Full CRUD for users by admin
+2. **Sign Up**: New users can create accounts (default: trainee role)
+3. **Profile Management**: Users can update name, department, and password
+4. **Document Upload**: Support for Word, PowerPoint, PDF files
+5. **Marking System**: Manual marking with visual indicators, competency tracking
+6. **Reports**: Analytics dashboard with CSV export
+7. **User Management**: Full CRUD for users by admin
 
 ## Pending Improvements
 
@@ -58,3 +65,4 @@ The Engineering Training Automated Marking System is now functional with all cor
 | Date | Changes |
 |------|---------|
 | 2026-02-23 | Initial implementation - complete marking system |
+| 2026-02-23 | Added sign up, profile management, fixed demo users with local SQLite |
