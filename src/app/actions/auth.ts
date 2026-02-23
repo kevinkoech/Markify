@@ -2,10 +2,19 @@
 
 import { login as authLogin, logout as authLogout, getCurrentUser, hashPassword } from "@/lib/auth";
 import { db } from "@/db";
-import { users, auditLogs } from "@/db/schema";
+import { users, auditLogs, referralCodes, referrals, userPoints, pointsTransactions } from "@/db/schema";
 import { eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+
+const SIGNUP_BONUS_POINTS = 50;
+const REFERRAL_BONUS_POINTS = 100;
+
+function generateReferralCode(name: string): string {
+  const base = name.toLowerCase().replace(/[^a-z]/g, '').substring(0, 6);
+  const random = Math.random().toString(36).substring(2, 6).toUpperCase();
+  return base + random;
+}
 
 export async function signup(formData: FormData) {
   const email = formData.get("email") as string;
@@ -13,6 +22,7 @@ export async function signup(formData: FormData) {
   const confirmPassword = formData.get("confirmPassword") as string;
   const name = formData.get("name") as string;
   const department = formData.get("department") as string;
+  const referralCode = formData.get("referralCode") as string;
   
   if (!email || !password || !name) {
     return { success: false, error: "Email, password, and name are required" };
@@ -41,6 +51,111 @@ export async function signup(formData: FormData) {
     department: department || null,
     role: "trainee", // New users are trainees by default
   }).returning();
+  
+  // Create referral code for the new user
+  const newReferralCode = generateReferralCode(name);
+  await db.insert(referralCodes).values({
+    code: newReferralCode,
+    userId: newUser.id,
+    isActive: true,
+  });
+  
+  // Initialize user points with signup bonus
+  await db.insert(userPoints).values({
+    userId: newUser.id,
+    balance: SIGNUP_BONUS_POINTS,
+    totalEarned: SIGNUP_BONUS_POINTS,
+    totalRedeemed: 0,
+  });
+  
+  // Log the signup bonus
+  await db.insert(pointsTransactions).values({
+    userId: newUser.id,
+    amount: SIGNUP_BONUS_POINTS,
+    type: "signup_bonus",
+    description: "Welcome bonus for signing up",
+  });
+  
+  // Handle referral code if provided
+  if (referralCode && referralCode.trim() !== "") {
+    const referrerCode = await db.select()
+      .from(referralCodes)
+      .where(eq(referralCodes.code, referralCode.trim()))
+      .limit(1);
+    
+    if (referrerCode.length > 0 && referrerCode[0].isActive) {
+      const referrerId = referrerCode[0].userId;
+      
+      // Don't allow self-referral
+      if (referrerId !== newUser.id) {
+        // Create referral record
+        await db.insert(referrals).values({
+          referrerId,
+          referredUserId: newUser.id,
+          referralCodeId: referrerCode[0].id,
+          bonusPoints: REFERRAL_BONUS_POINTS,
+          status: "completed",
+        });
+        
+        // Award points to referrer
+        const referrerPoints = await db.select()
+          .from(userPoints)
+          .where(eq(userPoints.userId, referrerId))
+          .limit(1);
+        
+        if (referrerPoints.length > 0) {
+          await db.update(userPoints)
+            .set({
+              balance: referrerPoints[0].balance + REFERRAL_BONUS_POINTS,
+              totalEarned: referrerPoints[0].totalEarned + REFERRAL_BONUS_POINTS,
+              updatedAt: new Date(),
+            })
+            .where(eq(userPoints.userId, referrerId));
+        } else {
+          // Create points record if doesn't exist
+          await db.insert(userPoints).values({
+            userId: referrerId,
+            balance: REFERRAL_BONUS_POINTS,
+            totalEarned: REFERRAL_BONUS_POINTS,
+            totalRedeemed: 0,
+          });
+        }
+        
+        // Log referrer bonus
+        await db.insert(pointsTransactions).values({
+          userId: referrerId,
+          amount: REFERRAL_BONUS_POINTS,
+          type: "referral_bonus",
+          description: `Referral bonus for inviting ${name}`,
+          relatedId: newUser.id,
+        });
+        
+        // Award bonus points to new user for using referral
+        const newUserPoints = await db.select()
+          .from(userPoints)
+          .where(eq(userPoints.userId, newUser.id))
+          .limit(1);
+        
+        if (newUserPoints.length > 0) {
+          await db.update(userPoints)
+            .set({
+              balance: newUserPoints[0].balance + REFERRAL_BONUS_POINTS,
+              totalEarned: newUserPoints[0].totalEarned + REFERRAL_BONUS_POINTS,
+            })
+            .where(eq(userPoints.userId, newUser.id));
+          
+          // Log referral bonus for new user
+          await db.insert(pointsTransactions).values({
+            userId: newUser.id,
+            amount: REFERRAL_BONUS_POINTS,
+            type: "referral_bonus",
+            description: "Bonus for using a referral code",
+            relatedId: referrerCode[0].id,
+          });
+        }
+      }
+    }
+  }
   
   // Log the signup
   await db.insert(auditLogs).values({

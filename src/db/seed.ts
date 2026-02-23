@@ -1,5 +1,5 @@
 import { db } from "./index";
-import { users, units, markingSchemes, enrollments } from "./schema";
+import { users, units, markingSchemes, enrollments, referralCodes, userPoints, redemptionOptions } from "./schema";
 import { hashPassword } from "@/lib/auth";
 
 async function seed() {
@@ -35,6 +35,28 @@ async function seed() {
   }).returning();
 
   console.log("Created demo users");
+
+  // Create referral codes for each user
+  const generateReferralCode = (name: string) => {
+    return name.toLowerCase().replace(/\s+/g, '').substring(0, 6) + Math.random().toString(36).substring(2, 6).toUpperCase();
+  };
+
+  await db.insert(referralCodes).values([
+    { code: generateReferralCode(admin.name), userId: admin.id },
+    { code: generateReferralCode(trainer.name), userId: trainer.id },
+    { code: generateReferralCode(trainee.name), userId: trainee.id },
+  ]);
+
+  console.log("Created referral codes");
+
+  // Create user points for each user
+  await db.insert(userPoints).values([
+    { userId: admin.id, balance: 500, totalEarned: 500, totalRedeemed: 0 },
+    { userId: trainer.id, balance: 300, totalEarned: 300, totalRedeemed: 0 },
+    { userId: trainee.id, balance: 100, totalEarned: 100, totalRedeemed: 0 },
+  ]);
+
+  console.log("Created user points");
 
   // Create demo units
   const [unit1] = await db.insert(units).values({
@@ -146,6 +168,77 @@ async function seed() {
   ]);
 
   console.log("Enrolled trainee in units");
+
+  // Create redemption options
+  await db.insert(redemptionOptions).values([
+    {
+      name: "Ksh 100 Airtime",
+      description: "Get Ksh 100 airtime for your phone",
+      type: "airtime",
+      pointsCost: 100,
+      value: "100",
+      isActive: true,
+    },
+    {
+      name: "Ksh 200 Airtime",
+      description: "Get Ksh 200 airtime for your phone",
+      type: "airtime",
+      pointsCost: 190,
+      value: "200",
+      isActive: true,
+    },
+    {
+      name: "500MB Data Bundle",
+      description: "Get 500MB data bundle valid for 7 days",
+      type: "data_bundle",
+      pointsCost: 150,
+      value: "500MB",
+      isActive: true,
+    },
+    {
+      name: "1GB Data Bundle",
+      description: "Get 1GB data bundle valid for 30 days",
+      type: "data_bundle",
+      pointsCost: 250,
+      value: "1GB",
+      isActive: true,
+    },
+    {
+      name: "Ksh 500 Gift Card",
+      description: "Ksh 500 gift card for selected stores",
+      type: "gift_card",
+      pointsCost: 500,
+      value: "500",
+      isActive: true,
+    },
+    {
+      name: "Ksh 1000 Gift Card",
+      description: "Ksh 1000 gift card for selected stores",
+      type: "gift_card",
+      pointsCost: 950,
+      value: "1000",
+      isActive: true,
+    },
+    {
+      name: "Premium Feature Unlock",
+      description: "Unlock premium features for 30 days",
+      type: "premium_feature",
+      pointsCost: 300,
+      value: "premium_30d",
+      isActive: true,
+    },
+    {
+      name: "Ksh 200 Voucher",
+      description: "Ksh 200 voucher for online purchases",
+      type: "voucher",
+      pointsCost: 200,
+      value: "200",
+      isActive: true,
+    },
+  ]);
+
+  console.log("Created redemption options");
+
   console.log("Seeding complete!");
   console.log("\nDemo accounts:");
   console.log("  Admin: admin@demo.com / admin123");

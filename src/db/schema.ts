@@ -132,13 +132,93 @@ export const enrollments = sqliteTable("enrollments", {
   enrolledBy: integer("enrolled_by").references(() => users.id),
 });
 
+// Referral codes table - each user can have a unique referral code
+export const referralCodes = sqliteTable("referral_codes", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  code: text("code").notNull().unique(),
+  userId: integer("user_id").notNull().references(() => users.id),
+  isActive: integer("is_active", { mode: "boolean" }).notNull().default(true),
+  createdAt: integer("created_at", { mode: "timestamp" }).$defaultFn(() => new Date()),
+});
+
+// Referrals table - tracks when someone uses a referral code
+export const referrals = sqliteTable("referrals", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  referrerId: integer("referrer_id").notNull().references(() => users.id), // User who owns the referral code
+  referredUserId: integer("referred_user_id").notNull().references(() => users.id), // New user who signed up
+  referralCodeId: integer("referral_code_id").notNull().references(() => referralCodes.id),
+  bonusPoints: integer("bonus_points").notNull().default(100), // Points awarded for successful referral
+  status: text("status", { enum: ["pending", "completed", "cancelled"] }).notNull().default("completed"),
+  createdAt: integer("created_at", { mode: "timestamp" }).$defaultFn(() => new Date()),
+});
+
+// User points table - tracks points balance for each user
+export const userPoints = sqliteTable("user_points", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  userId: integer("user_id").notNull().references(() => users.id).unique(),
+  balance: integer("balance").notNull().default(0),
+  totalEarned: integer("total_earned").notNull().default(0),
+  totalRedeemed: integer("total_redeemed").notNull().default(0),
+  createdAt: integer("created_at", { mode: "timestamp" }).$defaultFn(() => new Date()),
+  updatedAt: integer("updated_at", { mode: "timestamp" }).$defaultFn(() => new Date()),
+});
+
+// Points transactions table - tracks all point movements
+export const pointsTransactions = sqliteTable("points_transactions", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  userId: integer("user_id").notNull().references(() => users.id),
+  amount: integer("amount").notNull(), // Positive for earning, negative for redemption
+  type: text("type", { enum: ["referral_bonus", "signup_bonus", "redemption", "admin_adjustment", "task_completion"] }).notNull(),
+  description: text("description").notNull(),
+  relatedId: integer("related_id"), // Related referral, redemption, etc.
+  createdAt: integer("created_at", { mode: "timestamp" }).$defaultFn(() => new Date()),
+});
+
+// Redemption options table - available rewards to redeem
+export const redemptionOptions = sqliteTable("redemption_options", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  name: text("name").notNull(),
+  description: text("description"),
+  type: text("type", { enum: ["gift_card", "voucher", "airtime", "data_bundle", "premium_feature"] }).notNull(),
+  pointsCost: integer("points_cost").notNull(),
+  value: text("value"), // Monetary value or feature identifier
+  isActive: integer("is_active", { mode: "boolean" }).notNull().default(true),
+  createdAt: integer("created_at", { mode: "timestamp" }).$defaultFn(() => new Date()),
+  updatedAt: integer("updated_at", { mode: "timestamp" }).$defaultFn(() => new Date()),
+});
+
+// Redemptions table - tracks redemption requests
+export const redemptions = sqliteTable("redemptions", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  userId: integer("user_id").notNull().references(() => users.id),
+  optionId: integer("option_id").notNull().references(() => redemptionOptions.id),
+  pointsSpent: integer("points_spent").notNull(),
+  status: text("status", { enum: ["pending", "approved", "rejected", "fulfilled"] }).notNull().default("pending"),
+  requestedAt: integer("requested_at", { mode: "timestamp" }).$defaultFn(() => new Date()),
+  reviewedAt: integer("reviewed_at", { mode: "timestamp" }),
+  reviewedBy: integer("reviewed_by").references(() => users.id),
+  reviewNotes: text("review_notes"),
+  fulfilledAt: integer("fulfilled_at", { mode: "timestamp" }),
+});
+
 // Relations
-export const usersRelations = relations(users, ({ many }) => ({
+export const usersRelations = relations(users, ({ many, one }) => ({
   submissions: many(submissions),
   results: many(results),
   notifications: many(notifications),
   sessions: many(sessions),
   enrollments: many(enrollments),
+  referralCode: one(referralCodes, {
+    fields: [users.id],
+    references: [referralCodes.userId],
+  }),
+  referrals: many(referrals),
+  points: one(userPoints, {
+    fields: [users.id],
+    references: [userPoints.userId],
+  }),
+  pointsTransactions: many(pointsTransactions),
+  redemptions: many(redemptions),
 }));
 
 export const unitsRelations = relations(units, ({ many, one }) => ({
@@ -226,6 +306,64 @@ export const enrollmentsRelations = relations(enrollments, ({ one }) => ({
   }),
 }));
 
+// Referral relations
+export const referralCodesRelations = relations(referralCodes, ({ one, many }) => ({
+  user: one(users, {
+    fields: [referralCodes.userId],
+    references: [users.id],
+  }),
+  referrals: many(referrals),
+}));
+
+export const referralsRelations = relations(referrals, ({ one }) => ({
+  referrer: one(users, {
+    fields: [referrals.referrerId],
+    references: [users.id],
+  }),
+  referredUser: one(users, {
+    fields: [referrals.referredUserId],
+    references: [users.id],
+  }),
+  referralCode: one(referralCodes, {
+    fields: [referrals.referralCodeId],
+    references: [referralCodes.id],
+  }),
+}));
+
+export const userPointsRelations = relations(userPoints, ({ one, many }) => ({
+  user: one(users, {
+    fields: [userPoints.userId],
+    references: [users.id],
+  }),
+  transactions: many(pointsTransactions),
+}));
+
+export const pointsTransactionsRelations = relations(pointsTransactions, ({ one }) => ({
+  user: one(users, {
+    fields: [pointsTransactions.userId],
+    references: [users.id],
+  }),
+}));
+
+export const redemptionOptionsRelations = relations(redemptionOptions, ({ many }) => ({
+  redemptions: many(redemptions),
+}));
+
+export const redemptionsRelations = relations(redemptions, ({ one }) => ({
+  user: one(users, {
+    fields: [redemptions.userId],
+    references: [users.id],
+  }),
+  option: one(redemptionOptions, {
+    fields: [redemptions.optionId],
+    references: [redemptionOptions.id],
+  }),
+  reviewer: one(users, {
+    fields: [redemptions.reviewedBy],
+    references: [users.id],
+  }),
+}));
+
 // Type exports for use in application
 export type User = typeof users.$inferSelect;
 export type NewUser = typeof users.$inferInsert;
@@ -245,3 +383,15 @@ export type Session = typeof sessions.$inferSelect;
 export type NewSession = typeof sessions.$inferInsert;
 export type Enrollment = typeof enrollments.$inferSelect;
 export type NewEnrollment = typeof enrollments.$inferInsert;
+export type ReferralCode = typeof referralCodes.$inferSelect;
+export type NewReferralCode = typeof referralCodes.$inferInsert;
+export type Referral = typeof referrals.$inferSelect;
+export type NewReferral = typeof referrals.$inferInsert;
+export type UserPoints = typeof userPoints.$inferSelect;
+export type NewUserPoints = typeof userPoints.$inferInsert;
+export type PointsTransaction = typeof pointsTransactions.$inferSelect;
+export type NewPointsTransaction = typeof pointsTransactions.$inferInsert;
+export type RedemptionOption = typeof redemptionOptions.$inferSelect;
+export type NewRedemptionOption = typeof redemptionOptions.$inferInsert;
+export type Redemption = typeof redemptions.$inferSelect;
+export type NewRedemption = typeof redemptions.$inferInsert;

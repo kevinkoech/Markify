@@ -8,6 +8,13 @@
       "when": 1771836425096,
       "tag": "0000_petite_leo",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "6",
+      "when": 1771877098612,
+      "tag": "0001_bouncy_shocker",
+      "breakpoints": true
     }
   ]
 }

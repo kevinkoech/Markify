@@ -15,6 +15,7 @@ const traineeLinks = [
   { href: "/dashboard/upload", label: "Upload Assignment", icon: "upload" },
   { href: "/dashboard/submissions", label: "My Submissions", icon: "folder" },
   { href: "/dashboard/progress", label: "Progress Report", icon: "chart" },
+  { href: "/dashboard/rewards", label: "Rewards", icon: "gift" },
   { href: "/dashboard/profile", label: "Profile", icon: "user" },
 ];
 
@@ -24,6 +25,7 @@ const trainerLinks = [
   { href: "/dashboard/schemes", label: "Marking Schemes", icon: "clipboard" },
   { href: "/dashboard/submissions", label: "Submissions", icon: "folder" },
   { href: "/dashboard/reports", label: "Reports", icon: "chart" },
+  { href: "/dashboard/rewards", label: "Rewards", icon: "gift" },
   { href: "/dashboard/profile", label: "Profile", icon: "user" },
 ];
 
@@ -34,6 +36,8 @@ const adminLinks = [
   { href: "/dashboard/schemes", label: "Marking Schemes", icon: "clipboard" },
   { href: "/dashboard/submissions", label: "Submissions", icon: "folder" },
   { href: "/dashboard/reports", label: "Reports", icon: "chart" },
+  { href: "/dashboard/redemptions", label: "Redemptions", icon: "gift" },
+  { href: "/dashboard/rewards", label: "Rewards", icon: "gift" },
   { href: "/dashboard/profile", label: "Profile", icon: "user" },
 ];
 
@@ -82,6 +86,11 @@ const icons: Record<string, React.ReactNode> = {
   user: (
     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+    </svg>
+  ),
+  gift: (
+    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v13m0-13V6a2 2 0 112 2h-2zm0 0V5.5A2.5 2.5 0 109.5 8H12zm-7 4h14M5 12a2 2 0 110-4h14a2 2 0 110 4M5 12v7a2 2 0 002 2h10a2 2 0 002-2v-7" />
     </svg>
   ),
 };
