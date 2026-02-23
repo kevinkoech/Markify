@@ -1,87 +1,60 @@
-# Active Context: Next.js Starter Template
+# Active Context: Engineering Training Automated Marking System
 
 ## Current State
 
-**Template Status**: ✅ Ready for development
+**Status**: ✅ Phase 1 Complete - Core System Implemented
 
-The template is a clean Next.js 16 starter with TypeScript and Tailwind CSS 4. It's ready for AI-assisted expansion to build any type of application.
+The Engineering Training Automated Marking System is now functional with all core features implemented.
 
 ## Recently Completed
 
-- [x] Base Next.js 16 setup with App Router
-- [x] TypeScript configuration with strict mode
-- [x] Tailwind CSS 4 integration
-- [x] ESLint configuration
-- [x] Memory bank documentation
-- [x] Recipe system for common features
+- [x] Database setup with Drizzle ORM + SQLite
+- [x] User authentication with role-based access (trainee, trainer, admin)
+- [x] Database schema with relations (users, units, submissions, results, marking schemes, notifications, audit logs)
+- [x] Trainee portal (dashboard, upload, submissions, progress tracking)
+- [x] Trainer portal (dashboard, units, marking schemes, submissions, marking, reports)
+- [x] Admin portal (user management, system settings)
+- [x] Marking system with visual indicators (✓ tick, ✗ cross, ╱ diagonal)
+- [x] Reports and analytics with CSV export
+- [x] Demo user seeding script
 
 ## Current Structure
 
-| File/Directory | Purpose | Status |
-|----------------|---------|--------|
-| `src/app/page.tsx` | Home page | ✅ Ready |
-| `src/app/layout.tsx` | Root layout | ✅ Ready |
-| `src/app/globals.css` | Global styles | ✅ Ready |
-| `.kilocode/` | AI context & recipes | ✅ Ready |
+| Directory | Purpose |
+|-----------|---------|
+| `src/app/actions/` | Server actions for auth, marking, schemes, submissions, units, users |
+| `src/app/dashboard/` | Dashboard pages for all user roles |
+| `src/app/login/` | Login page |
+| `src/components/` | Shared UI components |
+| `src/db/` | Database schema, migrations, and seed |
+| `src/lib/` | Authentication utilities |
 
-## Current Focus
+## Demo Accounts
 
-The template is ready. Next steps depend on user requirements:
+| Role | Email | Password |
+|------|-------|----------|
+| Admin | admin@demo.com | admin123 |
+| Trainer | trainer@demo.com | trainer123 |
+| Trainee | trainee@demo.com | trainee123 |
 
-1. What type of application to build
-2. What features are needed
-3. Design/branding preferences
+## Key Features
 
-## Quick Start Guide
-
-### To add a new page:
-
-Create a file at `src/app/[route]/page.tsx`:
-```tsx
-export default function NewPage() {
-  return <div>New page content</div>;
-}
-```
-
-### To add components:
-
-Create `src/components/` directory and add components:
-```tsx
-// src/components/ui/Button.tsx
-export function Button({ children }: { children: React.ReactNode }) {
-  return <button className="px-4 py-2 bg-blue-600 text-white rounded">{children}</button>;
-}
-```
-
-### To add a database:
-
-Follow `.kilocode/recipes/add-database.md`
-
-### To add API routes:
-
-Create `src/app/api/[route]/route.ts`:
-```tsx
-import { NextResponse } from "next/server";
-
-export async function GET() {
-  return NextResponse.json({ message: "Hello" });
-}
-```
-
-## Available Recipes
-
-| Recipe | File | Use Case |
-|--------|------|----------|
-| Add Database | `.kilocode/recipes/add-database.md` | Data persistence with Drizzle + SQLite |
+1. **Authentication**: Session-based auth with cookies, role-based access control
+2. **Document Upload**: Support for Word, PowerPoint, PDF files
+3. **Marking System**: Manual marking with visual indicators, competency tracking
+4. **Reports**: Analytics dashboard with CSV export
+5. **User Management**: Full CRUD for users by admin
 
 ## Pending Improvements
 
-- [ ] Add more recipes (auth, email, etc.)
-- [ ] Add example components
-- [ ] Add testing setup recipe
+- [ ] OCR integration for scanned documents
+- [ ] AI-assisted marking
+- [ ] Email notification system
+- [ ] PDF report generation
+- [ ] Mobile responsiveness improvements
 
 ## Session History
 
 | Date | Changes |
 |------|---------|
-| Initial | Template created with base setup |
+| 2026-02-23 | Initial implementation - complete marking system |
