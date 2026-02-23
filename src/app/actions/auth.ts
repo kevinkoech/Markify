@@ -7,6 +7,54 @@ import { eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
+export async function signup(formData: FormData) {
+  const email = formData.get("email") as string;
+  const password = formData.get("password") as string;
+  const confirmPassword = formData.get("confirmPassword") as string;
+  const name = formData.get("name") as string;
+  const department = formData.get("department") as string;
+  
+  if (!email || !password || !name) {
+    return { success: false, error: "Email, password, and name are required" };
+  }
+  
+  if (password !== confirmPassword) {
+    return { success: false, error: "Passwords do not match" };
+  }
+  
+  if (password.length < 8) {
+    return { success: false, error: "Password must be at least 8 characters" };
+  }
+  
+  // Check if user already exists
+  const existingUser = await db.select().from(users).where(eq(users.email, email)).limit(1);
+  if (existingUser.length > 0) {
+    return { success: false, error: "An account with this email already exists" };
+  }
+  
+  // Create the user
+  const hashedPassword = await hashPassword(password);
+  const [newUser] = await db.insert(users).values({
+    email,
+    passwordHash: hashedPassword,
+    name,
+    department: department || null,
+    role: "trainee", // New users are trainees by default
+  }).returning();
+  
+  // Log the signup
+  await db.insert(auditLogs).values({
+    userId: newUser.id,
+    action: "signup",
+    entityType: "user",
+    entityId: newUser.id,
+  });
+  
+  // Auto-login the new user
+  const result = await authLogin(email, password);
+  return result;
+}
+
 export async function login(formData: FormData) {
   const email = formData.get("email") as string;
   const password = formData.get("password") as string;
@@ -89,4 +137,36 @@ export async function changePassword(formData: FormData) {
   });
   
   return { success: true };
+}
+
+export async function updateProfile(formData: FormData) {
+  const user = await getCurrentUser();
+  if (!user) {
+    return { success: false, error: "Not authenticated" };
+  }
+  
+  const name = formData.get("name") as string;
+  const department = formData.get("department") as string;
+  
+  if (!name || name.trim().length < 2) {
+    return { success: false, error: "Name must be at least 2 characters" };
+  }
+  
+  await db.update(users)
+    .set({ 
+      name: name.trim(),
+      department: department?.trim() || null,
+    })
+    .where(eq(users.id, user.id));
+  
+  // Log the profile update
+  await db.insert(auditLogs).values({
+    userId: user.id,
+    action: "profile_update",
+    entityType: "user",
+    entityId: user.id,
+  });
+  
+  revalidatePath("/dashboard");
+  return { success: true, user: { ...user, name: name.trim(), department: department?.trim() || null } };
 }
