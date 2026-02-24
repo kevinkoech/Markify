@@ -110,6 +110,31 @@ export function ReportsDashboard({
     URL.revokeObjectURL(url);
   };
 
+  const downloadPDF = async (type: "overall" | "unit" | "trainee", id?: number) => {
+    try {
+      let url = `/api/reports/pdf?type=${type}`;
+      if (id) {
+        url += `&${type === "unit" ? "unitId" : "traineeId"}=${id}`;
+      }
+      
+      const response = await fetch(url);
+      if (!response.ok) {
+        throw new Error("Failed to generate PDF");
+      }
+      
+      const blob = await response.blob();
+      const downloadUrl = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = downloadUrl;
+      a.download = `${type}-report-${new Date().toISOString().split("T")[0]}.pdf`;
+      a.click();
+      URL.revokeObjectURL(downloadUrl);
+    } catch (error) {
+      console.error("PDF download error:", error);
+      alert("Failed to generate PDF report");
+    }
+  };
+
   return (
     <div className="space-y-6">
       {/* Stats Cards */}
@@ -290,6 +315,15 @@ export function ReportsDashboard({
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
                 </svg>
                 Export CSV
+              </button>
+              <button
+                onClick={() => downloadPDF("overall")}
+                className="inline-flex items-center px-4 py-2 bg-red-600 text-white text-sm font-medium rounded-lg hover:bg-red-700"
+              >
+                <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                </svg>
+                Download PDF
               </button>
             </div>
           </div>

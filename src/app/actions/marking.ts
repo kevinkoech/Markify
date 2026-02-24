@@ -2,9 +2,10 @@
 
 import { getCurrentUser } from "@/lib/auth";
 import { db } from "@/db";
-import { results, submissions, notifications, auditLogs } from "@/db/schema";
+import { results, submissions, notifications, auditLogs, users, units } from "@/db/schema";
 import { eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
+import { sendEmail, emailTemplates } from "@/lib/email";
 
 export async function submitMarks(formData: FormData) {
   const user = await getCurrentUser();
@@ -93,6 +94,26 @@ export async function submitMarks(formData: FormData) {
       message: `Your assignment has been marked. Score: ${percentage}%`,
       relatedId: submissionId,
     });
+
+    // Send email notification to trainee
+    const trainee = await db.query.users.findFirst({
+      where: eq(users.id, traineeId),
+    });
+    const unit = await db.query.units.findFirst({
+      where: eq(units.id, unitId),
+    });
+
+    if (trainee && unit) {
+      const markingTemplate = emailTemplates.marking_complete({
+        traineeName: trainee.name,
+        unitName: unit.name,
+        score: totalMarks,
+        maxScore: maxMarks,
+        percentage,
+        isCompetent,
+      });
+      await sendEmail(trainee.email, markingTemplate);
+    }
 
     // Log the action
     await db.insert(auditLogs).values({

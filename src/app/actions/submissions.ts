@@ -2,12 +2,13 @@
 
 import { getCurrentUser } from "@/lib/auth";
 import { db } from "@/db";
-import { submissions, markingSchemes, notifications, auditLogs, users } from "@/db/schema";
+import { submissions, markingSchemes, notifications, auditLogs, users, units } from "@/db/schema";
 import { eq, desc, and, sql } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { v4 as uuidv4 } from "uuid";
 import path from "path";
 import fs from "fs/promises";
+import { sendEmail, emailTemplates } from "@/lib/email";
 
 const UPLOAD_DIR = path.join(process.cwd(), "uploads");
 
@@ -65,6 +66,28 @@ export async function uploadSubmission(formData: FormData) {
       })
       .returning();
 
+    // Get unit info for notifications
+    const unit = await db.query.units.findFirst({
+      where: eq(units.id, unitId),
+    });
+
+    // Create notification for trainee (upload confirmation)
+    await db.insert(notifications).values({
+      userId: user.id,
+      type: "upload_confirmation",
+      title: "Submission Uploaded Successfully",
+      message: `Your submission "${file.name}" for ${unit?.name || "unit"} has been received.`,
+      relatedId: submission.id,
+    });
+
+    // Send confirmation email to trainee
+    const uploadTemplate = emailTemplates.upload_confirmation({
+      traineeName: user.name,
+      unitName: unit?.name || "Unknown Unit",
+      fileName: file.name,
+    });
+    await sendEmail(user.email, uploadTemplate);
+
     // Create notification for trainers
     await createNotificationForTrainers(unitId, user.name, file.name);
 
@@ -99,6 +122,11 @@ function getFileType(extension: string): string {
 }
 
 async function createNotificationForTrainers(unitId: number, traineeName: string, fileName: string) {
+  // Get unit info
+  const unit = await db.query.units.findFirst({
+    where: eq(units.id, unitId),
+  });
+
   // Get all trainers
   const trainersList = await db
     .select()
@@ -106,13 +134,23 @@ async function createNotificationForTrainers(unitId: number, traineeName: string
     .where(eq(users.role, "trainer"));
 
   for (const trainer of trainersList) {
+    // Create in-app notification
     await db.insert(notifications).values({
       userId: trainer.id,
       type: "new_submission",
       title: "New Submission Received",
-      message: `${traineeName} submitted ${fileName}`,
+      message: `${traineeName} submitted ${fileName}${unit ? ` for ${unit.name}` : ""}`,
       relatedId: unitId,
     });
+
+    // Send email notification
+    const template = emailTemplates.new_submission({
+      trainerName: trainer.name,
+      traineeName,
+      unitName: unit?.name || "Unknown Unit",
+      fileName,
+    });
+    await sendEmail(trainer.email, template);
   }
 }
 
