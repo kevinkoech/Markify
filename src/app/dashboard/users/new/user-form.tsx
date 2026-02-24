@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { createUser } from "@/app/actions/users";
+import { createUser, updateUser } from "@/app/actions/users";
 
 interface UserFormProps {
   user?: {
@@ -24,13 +24,15 @@ export function UserForm({ user }: UserFormProps) {
     setLoading(true);
 
     try {
-      const result = await createUser(formData);
+      const result = user 
+        ? await updateUser(formData)
+        : await createUser(formData);
 
       if (result.success) {
         router.push("/dashboard/users");
         router.refresh();
       } else {
-        setError(result.error || "Failed to create user");
+        setError(result.error || `Failed to ${user ? 'update' : 'create'} user`);
       }
     } catch (err) {
       setError("An unexpected error occurred");

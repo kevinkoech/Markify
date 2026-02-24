@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { createUnit } from "@/app/actions/units";
+import { createUnit, updateUnit } from "@/app/actions/units";
 
 interface Trainer {
   id: number;
@@ -34,13 +34,15 @@ export function UnitForm({ trainers, unit }: UnitFormProps) {
     setLoading(true);
 
     try {
-      const result = await createUnit(formData);
+      const result = unit 
+        ? await updateUnit(formData)
+        : await createUnit(formData);
 
       if (result.success) {
         router.push("/dashboard/units");
         router.refresh();
       } else {
-        setError(result.error || "Failed to create unit");
+        setError(result.error || `Failed to ${unit ? 'update' : 'create'} unit`);
       }
     } catch (err) {
       setError("An unexpected error occurred");

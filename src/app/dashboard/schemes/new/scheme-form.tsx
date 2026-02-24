@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { createMarkingScheme } from "@/app/actions/schemes";
+import { createMarkingScheme, updateMarkingScheme } from "@/app/actions/schemes";
 
 interface Unit {
   id: number;
@@ -13,6 +13,16 @@ interface Unit {
 interface SchemeFormProps {
   units: Unit[];
   userId: number;
+  scheme?: {
+    id: number;
+    name: string;
+    description: string | null;
+    unitId: number;
+    markingMode: string;
+    version: string;
+    totalMarks: number;
+    schemeData: any;
+  };
 }
 
 interface Question {
@@ -26,15 +36,19 @@ interface Question {
   keyPoints?: { point: string; marks: number }[];
 }
 
-export function SchemeForm({ units, userId }: SchemeFormProps) {
+export function SchemeForm({ units, userId, scheme }: SchemeFormProps) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [questions, setQuestions] = useState<Question[]>([
-    { id: 1, type: "numerical", question: "", maxMarks: 10, correctAnswer: "", tolerance: 0 },
-  ]);
-  const [selectedUnit, setSelectedUnit] = useState<string>("");
-  const [markingMode, setMarkingMode] = useState<string>("trainer_points");
+  
+  // Initialize from existing scheme or defaults
+  const initialQuestions = scheme?.schemeData?.questions || [
+    { id: 1, type: "numerical" as const, question: "", maxMarks: 10, correctAnswer: "", tolerance: 0 },
+  ];
+  
+  const [questions, setQuestions] = useState<Question[]>(initialQuestions);
+  const [selectedUnit, setSelectedUnit] = useState<string>(scheme?.unitId?.toString() || "");
+  const [markingMode, setMarkingMode] = useState<string>(scheme?.markingMode || "trainer_points");
 
   function addQuestion() {
     const newId = questions.length > 0 ? Math.max(...questions.map((q) => q.id)) + 1 : 1;
@@ -64,13 +78,15 @@ export function SchemeForm({ units, userId }: SchemeFormProps) {
       // Add questions as JSON
       formData.set("questions", JSON.stringify(questions));
       
-      const result = await createMarkingScheme(formData);
+      const result = scheme 
+        ? await updateMarkingScheme(formData)
+        : await createMarkingScheme(formData);
 
       if (result.success) {
         router.push("/dashboard/schemes");
         router.refresh();
       } else {
-        setError(result.error || "Failed to create marking scheme");
+        setError(result.error || `Failed to ${scheme ? 'update' : 'create'} marking scheme`);
       }
     } catch (err) {
       setError("An unexpected error occurred");
@@ -89,6 +105,9 @@ export function SchemeForm({ units, userId }: SchemeFormProps) {
         </div>
       )}
 
+      {/* Hidden field for scheme ID when editing */}
+      {scheme && <input type="hidden" name="schemeId" value={scheme.id} />}
+
       {/* Basic Info */}
       <div className="grid grid-cols-2 gap-4">
         <div>
@@ -100,6 +119,7 @@ export function SchemeForm({ units, userId }: SchemeFormProps) {
             id="name"
             name="name"
             required
+            defaultValue={scheme?.name || ""}
             placeholder="e.g., Midterm Exam Scheme"
             className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
           />
@@ -134,6 +154,7 @@ export function SchemeForm({ units, userId }: SchemeFormProps) {
           id="description"
           name="description"
           rows={2}
+          defaultValue={scheme?.description || ""}
           placeholder="Brief description of this marking scheme..."
           className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
         />
@@ -164,7 +185,7 @@ export function SchemeForm({ units, userId }: SchemeFormProps) {
             type="text"
             id="version"
             name="version"
-            defaultValue="1.0"
+            defaultValue={scheme?.version || "1.0"}
             className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
           />
         </div>
@@ -329,7 +350,7 @@ export function SchemeForm({ units, userId }: SchemeFormProps) {
           disabled={loading || !selectedUnit}
           className="px-4 py-2 text-sm font-medium text-white bg-indigo-600 rounded-lg hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          {loading ? "Creating..." : "Create Scheme"}
+          {loading ? (scheme ? "Updating..." : "Creating...") : (scheme ? "Update Scheme" : "Create Scheme")}
         </button>
       </div>
     </form>
