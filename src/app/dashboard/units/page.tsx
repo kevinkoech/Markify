@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth";
 import { db } from "@/db";
@@ -59,7 +60,7 @@ export default async function UnitsPage() {
           <h1 className="text-2xl font-bold text-gray-900">Units / Subjects</h1>
           <p className="text-gray-600">Manage units and their marking schemes</p>
         </div>
-        <a
+        <Link
           href="/dashboard/units/new"
           className="inline-flex items-center px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-lg hover:bg-indigo-700 transition-colors"
         >
@@ -67,7 +68,7 @@ export default async function UnitsPage() {
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
           </svg>
           Add Unit
-        </a>
+        </Link>
       </div>
 
       <UnitsList units={unitsWithSchemes} trainers={trainers} userRole={user.role} />
